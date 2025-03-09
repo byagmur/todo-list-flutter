@@ -1,12 +1,29 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_app_flutter/constants/color.dart';
 import 'package:todo_app_flutter/presentation/widgets/todo_item.dart';
 import 'package:todo_app_flutter/data/models/todo.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
-  final todosList = ToDo.todoList;
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  //var vTodosList = ToDo.todoList;
+  final _todoController = TextEditingController();
+  List<ToDo> _searchToDo = [];
+
+  @override
+  void initState() {
+    _searchToDo = ToDo.todoList;
+    super.initState();
+    _loadToDos(); // Uygulama açıldığında kayıtlı verileri yükle
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +32,8 @@ class HomePage extends StatelessWidget {
         backgroundColor: darkGray,
         elevation: 0,
         title: Row(
-          children: [const Icon(Icons.menu, color: lightGray, size: 25)],
+          children: [const Icon(Icons.today_outlined, color: lightGray, size: 25)
+          ,],
         ),
       ),
       body: Stack(
@@ -36,7 +54,13 @@ class HomePage extends StatelessWidget {
                           style: TextStyle(fontSize: 20),
                         ),
                       ),
-                      for (ToDo todo in todosList()) TodoItem(todo: todo),
+                      for (ToDo _todo in _searchToDo /*vTodosList*/ )
+                        TodoItem(
+                          todo: _todo,
+                          onToDoChanged: _handleToDoChange,
+                          onDeleteItem:
+                              _deleteToDoItem, //TodoItem componentine gönderilen fonksiyonlar
+                        ),
                     ],
                   ),
                   //listWiew componenti içerisinde for döngüsü ile todoList elemanlarını TodoItem componentine gönderdik
@@ -64,6 +88,7 @@ class HomePage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: TextField(
+                      controller: _todoController,
                       decoration: InputDecoration(
                         hintText: "Yeni bir görev ekleyin",
                         border: InputBorder.none,
@@ -86,13 +111,12 @@ class HomePage extends StatelessWidget {
                       ),
                       padding: EdgeInsets.all(0),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      if (_todoController.text.isNotEmpty) {
+                        _addToDoItem(_todoController.text);
+                      }
+                    },
                     child: Icon(Icons.add, color: Colors.white, size: 30),
-                    // child: Text(
-                    //   "+",
-                    //   textAlign: TextAlign.center,
-                    //   style: TextStyle(fontSize: 15, color: Colors.white),
-                    // ),
                   ),
                 ),
               ],
@@ -101,6 +125,52 @@ class HomePage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _deleteToDoItem(String id) {
+    setState(
+      () {
+        ToDo.todoList /*vTodosList*/ .removeWhere((todo) => todo.id == id);
+        print(id + " numaralı id'ye sahip eleman silindi");
+        _saveToDos();
+      }, //id'si eşleşen elemanı sil
+    );
+  }
+
+  void _addToDoItem(String _toDo) {
+    setState(() {
+      ToDo.todoList /*vTodosList*/ .add(
+        ToDo(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: _toDo,
+        ),
+      );
+      _todoController.clear();
+      _saveToDos();
+    });
+  }
+
+  void _handleToDoChange(ToDo _todo) {
+    setState(() {
+      _todo.isDone = !(_todo.isDone ?? false);
+    });
+    print(
+      _todo.isDone,
+    ); //StatefulWidget olarak değiştirdikten sonra, widget.todo ifadesini kullandık çünkü
+    // StatefulWidget'lar, dışarıdan gelen verilere (todo gibi) widget üzerinden erişir.
+  }
+
+  void _filteredSearch(String query) {
+    List<ToDo> results = [];
+    if (query.isNotEmpty) {
+        results = ToDo.todoList.where((item) => item.title!.toLowerCase().contains(query.toLowerCase())).toList();
+    
+    } else {
+      results = ToDo.todoList;
+    }
+    setState(() {
+      _searchToDo = results;
+    });
   }
 
   // searchBox custom component haline getirildi ve HomePage içerisinde kullanıldı
@@ -112,6 +182,7 @@ class HomePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
+        onChanged: (value) => _filteredSearch(value),
         decoration: InputDecoration(
           contentPadding: EdgeInsets.all(0),
           prefixIcon: const Icon(Icons.search, color: lightGray),
@@ -122,5 +193,33 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _saveToDos() async {
+    //verileri kaydet
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String encodedData = jsonEncode(
+        ToDo.todoList /*vTodosList*/ .map((todo) => todo.toJson()).toList(),
+      );
+      await prefs.setString('todos', encodedData);
+    } on Exception catch (e) {
+      print("Hata oluştu" + e.toString());
+    }
+  }
+
+  Future<void> _loadToDos() async {
+    //kayıtlı verileri yükle
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? todosString = prefs.getString('todos');
+      if (todosString != null) {
+        List<dynamic> decodedData = jsonDecode(todosString);
+        //vTodosList = decodedData.map((item) => ToDo.fromJson(item)).toList();
+        ToDo.todoList = decodedData.map((item) => ToDo.fromJson(item)).toList();
+      }
+    } catch (e) {
+      print("Hata oluştu" + e.toString());
+    }
   }
 }

@@ -2,10 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:todo_app_flutter/constants/color.dart';
 import 'package:todo_app_flutter/data/models/todo.dart';
 
-class TodoItem extends StatelessWidget {
+class TodoItem extends StatefulWidget {
   final ToDo todo;
-  const TodoItem({super.key, required this.todo});
+  final onToDoChanged;
+  final onDeleteItem;
 
+  const TodoItem({
+    super.key,
+    required this.todo,
+    required this.onToDoChanged,
+    required this.onDeleteItem,
+  });
+
+  @override
+  State<TodoItem> createState() => _TodoItemState();
+}
+
+class _TodoItemState extends State<TodoItem> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -14,24 +27,25 @@ class TodoItem extends StatelessWidget {
     );
   }
 
-  ListTile ListTileForTodoItem() {
+  Widget ListTileForTodoItem() {
     return ListTile(
-      onTap: () {},
+      onTap: () {
+        widget.onToDoChanged(widget.todo);
+      },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       tileColor: darkGray,
       leading: Icon(
-        (todo.isDone ?? false)
+        (widget.todo.isDone ?? false)
             ? Icons.check_box
             : Icons.check_box_outline_blank,
         color: lightBlue,
       ),
       title: Text(
-        todo.title!, //dinamik olarak title değerini alıyoruz
+        widget.todo.title!,
         style: TextStyle(
           color: lightGray,
-          decoration:
-              (todo.isDone ?? false) ? TextDecoration.lineThrough : null,
+          decoration: (widget.todo.isDone ?? false) ? TextDecoration.lineThrough : null,
         ),
       ),
       trailing: Container(
@@ -47,11 +61,9 @@ class TodoItem extends StatelessWidget {
           color: Colors.white,
           iconSize: 15,
           icon: Icon(Icons.clear),
-          alignment:
-              Alignment
-                  .center, //ikon boyutu kutu boyutunun yarısı kadar olmazsa ortalamıyor ve hata veriyor!
+          alignment: Alignment.center,
           onPressed: () {
-            print('konsol deneme');
+            widget.onDeleteItem(widget.todo.id);
           },
         ),
       ),

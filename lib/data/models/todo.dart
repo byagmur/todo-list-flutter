@@ -6,18 +6,38 @@ class ToDo {
   String? title;
   bool? isDone;
 
-  ToDo({required this.id, required this.title, this.isDone = false});
+  ToDo({ //constructor
+    required this.id, 
+    required this.title, 
+    this.isDone = false});
 
-  static List<ToDo> todoList() {
-    return [
-      ToDo(id: '1', title: 'Mailleri kontrol et', isDone: true),
-      ToDo(id: '2', title: 'Markete git'),
-      ToDo(id: '3', title: 'Alışveriş yap'),
-      ToDo(id: '4', title: 'Yürüyüşe çık'),
-      ToDo(id: '5', title: 'Kitap oku'),
-      ToDo(id: '6', title: 'Ders çalış'),
-    ];
+ // toJson: ToDo nesnesini Map'e dönüştürme
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'isDone': isDone,
+    };
   }
+
+  // fromJson: Map'ten ToDo nesnesi oluşturma
+  factory ToDo.fromJson(Map<String, dynamic> json) {
+    return ToDo(
+      id: json['id'],
+      title: json['title'],
+      isDone: json['isDone'] ?? false,  // Varsayılan değer false
+    );
+  }
+
+
+static List<ToDo> todoList = [
+  ToDo(id: '1', title: 'Mailleri kontrol et', isDone: true),
+  ToDo(id: '2', title: 'Markete git'),
+  ToDo(id: '3', title: 'Alışveriş yap'),
+  ToDo(id: '4', title: 'Yürüyüşe çık'),
+ ToDo(id: '5', title: 'Kitap oku'),
+  ToDo(id: '6', title: 'Ders çalış'),
+];
 
   //verileri apiden çekmeyi dene!
 
