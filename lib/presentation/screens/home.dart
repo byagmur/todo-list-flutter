@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_app_flutter/constants/color.dart';
@@ -20,14 +19,16 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void initState() {
-    _searchToDo = ToDo.todoList;
     super.initState();
     _loadToDos(); // Uygulama açıldığında kayıtlı verileri yükle
+        _searchToDo = ToDo.todoList;
+
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset : false, //klavye açıldığında ekranın kaymasını engeller
       appBar: AppBar(
         backgroundColor: darkGray,
         elevation: 0,
@@ -40,7 +41,7 @@ class _HomePageState extends State<HomePage> {
         // container widget i column widget i ile sarmalandı ,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             child: Column(
               children: [
                 searchBox(),
@@ -73,30 +74,34 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(left: 25, right: 10, bottom: 20),
-                    decoration: BoxDecoration(
-                      color: gray,
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color.fromARGB(255, 56, 56, 56),
-                          offset: Offset(0, 0),
-                          blurRadius: 5,
-                          spreadRadius: 0.0,
+
+                  child: SingleChildScrollView(
+                    child: Container(
+                      margin: EdgeInsets.only(left: 25, right: 10, bottom: 20),
+                      decoration: BoxDecoration(
+                        color: gray,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color.fromARGB(255, 56, 56, 56),
+                            offset: Offset(0, 0),
+                            blurRadius: 5,
+                            spreadRadius: 0.0,
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: TextField(
+                        controller: _todoController,
+                        decoration: InputDecoration(
+                          hintText: "Yeni bir görev ekleyin",
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.only(left: 20, right: 20),
                         ),
-                      ],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: TextField(
-                      controller: _todoController,
-                      decoration: InputDecoration(
-                        hintText: "Yeni bir görev ekleyin",
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(left: 20, right: 20),
                       ),
                     ),
                   ),
                 ),
+
                 Container(
                   margin: EdgeInsets.only(right: 20, bottom: 20),
                   child: ElevatedButton(
@@ -130,7 +135,7 @@ class _HomePageState extends State<HomePage> {
   void _deleteToDoItem(String id) {
     setState(
       () {
-        ToDo.todoList /*vTodosList*/ .removeWhere((todo) => todo.id == id);
+        _searchToDo .removeWhere((todo) => todo.id == id);
         print(id + " numaralı id'ye sahip eleman silindi");
         _saveToDos();
       }, //id'si eşleşen elemanı sil
@@ -139,7 +144,7 @@ class _HomePageState extends State<HomePage> {
 
   void _addToDoItem(String _toDo) {
     setState(() {
-      ToDo.todoList /*vTodosList*/ .add(
+      _searchToDo.add(
         ToDo(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           title: _toDo,
@@ -200,7 +205,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       String encodedData = jsonEncode(
-        ToDo.todoList /*vTodosList*/ .map((todo) => todo.toJson()).toList(),
+        _searchToDo.map((todo) => todo.toJson()).toList(),
       );
       await prefs.setString('todos', encodedData);
     } on Exception catch (e) {
@@ -208,18 +213,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _loadToDos() async {
-    //kayıtlı verileri yükle
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      String? todosString = prefs.getString('todos');
-      if (todosString != null) {
-        List<dynamic> decodedData = jsonDecode(todosString);
-        //vTodosList = decodedData.map((item) => ToDo.fromJson(item)).toList();
-        ToDo.todoList = decodedData.map((item) => ToDo.fromJson(item)).toList();
-      }
-    } catch (e) {
-      print("Hata oluştu" + e.toString());
+Future<void> _loadToDos() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? todosString = prefs.getString('todos');
+    if (todosString != null) {
+      List<dynamic> decodedData = jsonDecode(todosString);
+      setState(() {
+        _searchToDo = decodedData.map((item) => ToDo.fromJson(item)).toList();
+      });
     }
+  } catch (e) {
+    print("Hata oluştu: $e");
   }
+}
+
 }

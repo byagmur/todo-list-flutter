@@ -11,7 +11,7 @@ class ToDo {
     required this.title, 
     this.isDone = false});
 
- // toJson: ToDo nesnesini Map'e dönüştürme
+ // toJson: ToDo nesnesini Map'e dönüştürme, apiye veri gönderirken kullanılır.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -20,7 +20,7 @@ class ToDo {
     };
   }
 
-  // fromJson: Map'ten ToDo nesnesi oluşturma
+  // fromJson: Map'ten ToDo nesnesi oluşturma, apiden veri çektikten sonra json veriyi ToDo nesnesine dönüştürmek için kullanılır.
   factory ToDo.fromJson(Map<String, dynamic> json) {
     return ToDo(
       id: json['id'],
