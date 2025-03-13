@@ -36,7 +36,6 @@ static List<ToDo> todoList = [
   ToDo(id: '3', title: 'Alışveriş yap'),
   ToDo(id: '4', title: 'Yürüyüşe çık'),
  ToDo(id: '5', title: 'Kitap oku'),
-  ToDo(id: '6', title: 'Ders çalış'),
 ];
 
   //verileri apiden çekmeyi dene!

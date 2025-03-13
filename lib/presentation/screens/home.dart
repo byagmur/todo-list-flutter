@@ -17,11 +17,14 @@ class _HomePageState extends State<HomePage> {
   final _todoController = TextEditingController();
   List<ToDo> _searchToDo = [];
 
+    List<ToDo> _fullToDoList = []; // Tam listeyi saklamak için
+
   @override
   void initState() {
     super.initState();
+      _searchToDo = []; // Başlangıçta boş liste
     _loadToDos(); // Uygulama açıldığında kayıtlı verileri yükle
-        _searchToDo = ToDo.todoList;
+    
 
   }
 
@@ -32,8 +35,9 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: darkGray,
         elevation: 0,
+        toolbarHeight: 55,
         title: Row(
-          children: [const Icon(Icons.today_outlined, color: lightGray, size: 25)
+          children: [const Icon(Icons.access_time, color: lightGray, size: 25)
           ,],
         ),
       ),
@@ -74,7 +78,6 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Expanded(
-
                   child: SingleChildScrollView(
                     child: Container(
                       margin: EdgeInsets.only(left: 25, right: 10, bottom: 20),
@@ -132,28 +135,27 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _deleteToDoItem(String id) {
-    setState(
-      () {
-        _searchToDo .removeWhere((todo) => todo.id == id);
-        print(id + " numaralı id'ye sahip eleman silindi");
-        _saveToDos();
-      }, //id'si eşleşen elemanı sil
-    );
-  }
+void _deleteToDoItem(String id) {
+  setState(() {
+    _searchToDo.removeWhere((todo) => todo.id == id);
+    _fullToDoList.removeWhere((todo) => todo.id == id); // Tam listeden de siliyoruz
+    _saveToDos();
+  });
+}
 
-  void _addToDoItem(String _toDo) {
-    setState(() {
-      _searchToDo.add(
-        ToDo(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          title: _toDo,
-        ),
-      );
-      _todoController.clear();
-      _saveToDos();
-    });
-  }
+
+ void _addToDoItem(String _toDo) {
+  setState(() {
+    final newToDo = ToDo(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _toDo,
+    );
+    _searchToDo.add(newToDo);
+    _fullToDoList.add(newToDo); // Tam listeye de ekliyoruz
+    _todoController.clear();
+    _saveToDos();
+  });
+}
 
   void _handleToDoChange(ToDo _todo) {
     setState(() {
@@ -165,18 +167,22 @@ class _HomePageState extends State<HomePage> {
     // StatefulWidget'lar, dışarıdan gelen verilere (todo gibi) widget üzerinden erişir.
   }
 
-  void _filteredSearch(String query) {
-    List<ToDo> results = [];
-    if (query.isNotEmpty) {
-        results = ToDo.todoList.where((item) => item.title!.toLowerCase().contains(query.toLowerCase())).toList();
-    
-    } else {
-      results = ToDo.todoList;
-    }
-    setState(() {
-      _searchToDo = results;
-    });
+void _filteredSearch(String query) {
+  List<ToDo> results = [];
+
+  if (query.isNotEmpty) {
+    // Eğer arama yapılmışsa, query'ye göre listeyi filtrele
+    results = _fullToDoList.where((item) => item.title!.toLowerCase().contains(query.toLowerCase())).toList();
+  } else {
+    // Eğer arama boşsa, tam listeyi göster
+    results = _fullToDoList;
   }
+
+  setState(() {
+    _searchToDo = results;
+  });
+}
+
 
   // searchBox custom component haline getirildi ve HomePage içerisinde kullanıldı
   Container searchBox() {
@@ -187,7 +193,9 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
-        onChanged: (value) => _filteredSearch(value),
+        
+        onChanged: 
+        (value) => _filteredSearch(value),
         decoration: InputDecoration(
           contentPadding: EdgeInsets.all(0),
           prefixIcon: const Icon(Icons.search, color: lightGray),
@@ -220,7 +228,8 @@ Future<void> _loadToDos() async {
     if (todosString != null) {
       List<dynamic> decodedData = jsonDecode(todosString);
       setState(() {
-        _searchToDo = decodedData.map((item) => ToDo.fromJson(item)).toList();
+         _fullToDoList = decodedData.map((item) => ToDo.fromJson(item)).toList();
+        _searchToDo = _fullToDoList; // Başlangıçta tam listeyi göster
       });
     }
   } catch (e) {
