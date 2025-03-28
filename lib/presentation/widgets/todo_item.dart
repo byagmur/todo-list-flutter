@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todo_app_flutter/constants/color.dart';
 import 'package:todo_app_flutter/data/models/todo.dart';
+import 'package:todo_app_flutter/theme/theme.dart';
 
 class TodoItem extends StatefulWidget {
   final ToDo todo;
@@ -28,15 +29,17 @@ class _TodoItemState extends State<TodoItem> {
   }
 
   Widget ListTileForTodoItem() {
+        ThemeInheritedWidget? InheritedTheme = ThemeInheritedWidget.of(context);
+    var _themeMode = InheritedTheme?.themeMode;
     return ListTile(
       onTap: () {
         widget.onToDoChanged(widget.todo);
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      tileColor: darkGray,
+      tileColor: (_themeMode == ThemeMode.dark ? darkGray : lightestGray),
       leading: Icon(
-        (widget.todo.isDone ?? false)
+        (widget.todo.completed ?? false)
             ? Icons.check_box
             : Icons.check_box_outline_blank,
         color: lightBlue,
@@ -44,8 +47,8 @@ class _TodoItemState extends State<TodoItem> {
       title: Text(
         widget.todo.title!,
         style: TextStyle(
-          color: lightGray,
-          decoration: (widget.todo.isDone ?? false) ? TextDecoration.lineThrough : null,
+          color: (_themeMode == ThemeMode.dark ? lightestGray : darkGray),
+          decoration: (widget.todo.completed ?? false) ? TextDecoration.lineThrough : null,
         ),
       ),
       trailing: Container(
