@@ -1,7 +1,8 @@
+// ignore_for_file: prefer_typing_uninitialized_variables
+
 import 'package:flutter/material.dart';
-import 'package:todo_app_flutter/constants/color.dart';
-import 'package:todo_app_flutter/data/models/todo.dart';
-import 'package:todo_app_flutter/theme/theme.dart';
+import 'package:todo_app_flutter/constants/theme.dart';
+import 'package:todo_app_flutter/data/models/todo_model.dart';
 
 class TodoItem extends StatefulWidget {
   final ToDo todo;
@@ -19,51 +20,100 @@ class TodoItem extends StatefulWidget {
   State<TodoItem> createState() => _TodoItemState();
 }
 
-class _TodoItemState extends State<TodoItem> {
+class _TodoItemState extends State<TodoItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+    
+    _opacityAnimation = Tween<double>(begin: 0.0, end:1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 15),
+      margin: const EdgeInsets.only(bottom: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withAlpha(51),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: ListTileForTodoItem(),
     );
   }
 
   Widget ListTileForTodoItem() {
-        ThemeInheritedWidget? InheritedTheme = ThemeInheritedWidget.of(context);
-    var _themeMode = InheritedTheme?.themeMode;
     return ListTile(
       onTap: () {
         widget.onToDoChanged(widget.todo);
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      tileColor: (_themeMode == ThemeMode.dark ? darkGray : lightestGray),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      tileColor: Colors.white,
       leading: Icon(
         (widget.todo.completed ?? false)
             ? Icons.check_box
             : Icons.check_box_outline_blank,
-        color: lightBlue,
+        color: AppTheme.primaryColor,
       ),
       title: Text(
         widget.todo.title!,
         style: TextStyle(
-          color: (_themeMode == ThemeMode.dark ? lightestGray : darkGray),
-          decoration: (widget.todo.completed ?? false) ? TextDecoration.lineThrough : null,
+          color: AppTheme.textColor,
+          fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
+          decoration:
+              (widget.todo.completed ?? false)
+                  ? TextDecoration.lineThrough
+                  : null,
+          decorationColor: AppTheme.hintColor,
+          decorationStyle: TextDecorationStyle.solid,
         ),
       ),
       trailing: Container(
-        padding: EdgeInsets.all(0),
-        margin: EdgeInsets.symmetric(vertical: 12),
+        padding: EdgeInsets.zero,
+        margin: const EdgeInsets.symmetric(vertical: 12),
         height: 30,
         width: 30,
         decoration: BoxDecoration(
-          color: red,
+          color: AppTheme.errorColor,
           borderRadius: BorderRadius.circular(5),
         ),
         child: IconButton(
           color: Colors.white,
           iconSize: 15,
-          icon: Icon(Icons.clear),
+          icon: const Icon(Icons.clear),
           alignment: Alignment.center,
           onPressed: () {
             widget.onDeleteItem(widget.todo.id);
