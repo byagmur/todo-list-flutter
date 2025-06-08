@@ -2,34 +2,36 @@
 import 'package:todo_app_flutter/data/models/todo_model.dart';
 
 class ToDoDTO {
-  final int id;
+  final String id;
   final String title;
-  final bool completed;
+  final bool isCompleted;
 
-  ToDoDTO({required this.id, required this.title, required this.completed});
+  ToDoDTO({required this.id, required this.title, required this.isCompleted});
 
-  factory ToDoDTO.fromJson(Map<String, dynamic> json) {
+  factory ToDoDTO.fromJson(Map<String, dynamic> json, String documentId) {
     return ToDoDTO(
-      id: json['id'],
-      title: json['todo'],
-      completed: json['completed'],
+      id: documentId,
+      title: json['title'] ?? '', // Eksikse boş string
+      isCompleted: json['isCompleted'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'todo': title,
-    'completed': completed,
+    'title': title,
+    'isCompleted': isCompleted,
   };
 
-  // gelen json verisini model'e dönüştür
-  ToDo toModel() => ToDo(id: id, title: title, completed: completed);
+  // id artık string olarak model'e aktarılıyor
+  ToDo toModel() => ToDo(id: id, title: title, completed: isCompleted);
 
   factory ToDoDTO.fromModel(ToDo model) {
     return ToDoDTO(
-      id: model.id ?? 0,
-      title: model.title ?? "",
-      completed: model.completed ?? false,
+      id:
+          (model.id ?? '')
+              .toString(), // null ise boş string, String'e dönüştürüldü
+      title: model.title as String,
+      isCompleted: model.completed as bool,
     );
   }
 }

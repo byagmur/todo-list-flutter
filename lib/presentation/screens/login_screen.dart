@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:todo_app_flutter/constants/app_strings.dart';
+import 'package:todo_app_flutter/constants/color.dart';
 import 'package:todo_app_flutter/constants/theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:todo_app_flutter/providers/todo_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+String? globalUserId; // Global kullanıcı ID'si
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +22,9 @@ class LoginScreenState extends State<LoginScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void initState() {
@@ -43,20 +53,80 @@ class LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  Future<void> _login() async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      // Giriş başarılı
+      print("Giriş başarılı: ${userCredential.user?.uid}");
+
+      // Kullanıcı ID'sini global değişkene ata
+      globalUserId = userCredential.user!.uid;
+
+      // Kullanıcı ID'sini localde sakla
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', globalUserId!);
+
+      // Check if the widget is still mounted before navigating
+      if (mounted) {
+        // TodoProvider'dan görevleri yükle
+        Provider.of<TodoProvider>(
+          context,
+          listen: false,
+        ).fetchUserTodos(globalUserId!);
+
+        // Ana sayfaya yönlendir
+        context.go('/home');
+      }
+    } catch (e) {
+      String errorMessage;
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'Kullanıcı bulunamadı.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Parola hatalı.';
+            break;
+          case 'invalid-email':
+            errorMessage = 'Geçersiz e-posta adresi.';
+            break;
+          case 'email-already-in-use':
+            errorMessage = 'Bu e-posta adresi zaten kullanılıyor.';
+            break;
+          default:
+            errorMessage = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+        }
+      } else {
+        errorMessage = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+      }
+
+      // Hata mesajını göster
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline_outlined, color: Colors.red, size: 20),
+                const SizedBox(width: 8),
+                Text(errorMessage, style: TextStyle(color: Colors.red)),
+              ],
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color.fromARGB(255, 9, 15, 58),
-              AppTheme.backgroundColor.withAlpha(204),
-            ],
-          ),
-        ),
+        decoration: BoxDecoration(color: Colors.white),
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
@@ -67,8 +137,8 @@ class LoginScreenState extends State<LoginScreen>
                   position: _slideAnimation,
                   child: Card(
                     elevation: 8,
-                    shadowColor: AppTheme.primaryColor.withAlpha(102),
-                    color: Colors.transparent,
+                    shadowColor: Colors.grey.withOpacity(0.2),
+                    color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -80,91 +150,83 @@ class LoginScreenState extends State<LoginScreen>
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: const Color.fromARGB(
-                                255,
-                                223,
-                                224,
-                                226,
-                              ).withAlpha(10),
+                              color: Colors.grey[200],
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.account_circle,
+                              Icons.lock,
                               size: 80,
-                              color: Colors.white,
+                              color: Colors.black,
                             ),
                           ),
                           const SizedBox(height: 32),
                           TextField(
+                            controller: _emailController,
                             decoration: InputDecoration(
-                              labelText: AppStrings.email,
-                              prefixIcon: Icon(
-                                Icons.email,
-                                color: Colors.white,
+                              hintStyle: TextStyle(color: Colors.black),
+                              labelText: 'Email',
+                              labelStyle: TextStyle(
+                                color: const Color.fromARGB(162, 37, 37, 37),
                               ),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              prefixIcon: Icon(
+                                Icons.person,
+                                color: Colors.black,
+                              ),
+                              border: OutlineInputBorder(),
                             ),
+                            style: TextStyle(color: Colors.black),
                           ),
                           const SizedBox(height: 16),
                           TextField(
-                            obscureText: true,
+                            controller: _passwordController,
                             decoration: InputDecoration(
-                              labelText: AppStrings.password,
-                              prefixIcon: Icon(Icons.lock, color: Colors.white),
+                              labelText: 'Şifre',
+                              labelStyle: TextStyle(
+                                color: const Color.fromARGB(162, 37, 37, 37),
+                              ),
+                              floatingLabelBehavior: FloatingLabelBehavior.auto,
+                              prefixIcon: Icon(Icons.lock, color: Colors.black),
+                              border: OutlineInputBorder(),
                             ),
+                            style: TextStyle(color: Colors.black),
+                            obscureText: true,
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Checkbox(
-                                    value: false,
-                                    onChanged: (value) {},
-                                    activeColor: AppTheme.primaryColor,
-                                  ),
-                                  Text(AppStrings.rememberMe),
-                                ],
-                              ),
-                              TextButton(
-                                onPressed: () {},
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.surfaceColor,
-                                ),
-                                child: Text(AppStrings.forgetPassword),
-                              ),
-                            ],
+                          TextButton(
+                            onPressed: () {},
+                            child: Text('Şifrenizi mi unuttunuz?'),
                           ),
                           const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                context.go('/home');
-                              },
-                              // style: Theme.of(context).elevatedButtonTheme.style
+                              onPressed: _login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppTheme.primaryColor,
+                                backgroundColor: Colors.black87,
+                                foregroundColor: Colors.white,
                                 minimumSize: const Size(double.infinity, 50),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 15,
                                 ),
                               ),
-                              child: Text(AppStrings.login),
+                              child: Text('Giriş Yap'),
                             ),
                           ),
                           const SizedBox(height: 16),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(AppStrings.dontHaveAccount),
-                              TextButton(
-                                onPressed: () {},
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppTheme.surfaceColor,
+                              const SizedBox(width: 8),
+                              Container(
+                                child: _buildSocialButton(
+                                  Icons.g_mobiledata,
+                                  () {},
                                 ),
-                                child: Text(AppStrings.signUp),
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                child: _buildSocialButton(Icons.apple, () {}),
                               ),
                             ],
                           ),
@@ -172,11 +234,10 @@ class LoginScreenState extends State<LoginScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildSocialButton(Icons.facebook, () {}),
-                              const SizedBox(width: 16),
-                              _buildSocialButton(Icons.g_mobiledata, () {}),
-                              const SizedBox(width: 16),
-                              _buildSocialButton(Icons.apple, () {}),
+                              TextButton(
+                                onPressed: () {},
+                                child: Text('Kayıt Ol'),
+                              ),
                             ],
                           ),
                         ],

@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:todo_app_flutter/constants/app_strings.dart';
 import 'package:todo_app_flutter/constants/color.dart';
 import 'package:todo_app_flutter/constants/theme.dart';
+import 'package:todo_app_flutter/presentation/screens/login_screen.dart';
 import 'package:todo_app_flutter/presentation/widgets/loader.dart';
 import 'package:todo_app_flutter/providers/todo_provider.dart';
 import 'package:todo_app_flutter/presentation/widgets/todo_item.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,6 +23,29 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _todoController = TextEditingController();
   var _isLoading = true;
+  bool _isLoggingOut = false;
+
+  String? _infoMessage;
+  Timer? _infoTimer;
+
+  void showInfoMessage(String message) {
+    setState(() {
+      _infoMessage = message;
+    });
+    _infoTimer?.cancel();
+    _infoTimer = Timer(const Duration(seconds: 2), () {
+      setState(() {
+        _infoMessage = null;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _todoController.dispose();
+    _infoTimer?.cancel();
+    super.dispose();
+  }
 
   void changeLoading() {
     setState(() {
@@ -29,8 +57,39 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    TodoProvider.fetchTodos();
+    _loadUserId();
     changeLoading();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    globalUserId = prefs.getString('userId');
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+    try {
+      await FirebaseAuth.instance.signOut();
+      globalUserId = null;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('userId');
+      // İsterseniz local user verilerini de temizleyebilirsiniz
+      // SharedPreferences prefs = await SharedPreferences.getInstance();
+      // await prefs.clear();
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (e) {
+      // Hata durumunda loader'ı kapat
+      setState(() {
+        _isLoggingOut = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Çıkış sırasında hata oluştu')));
+    }
   }
 
   @override
@@ -39,7 +98,7 @@ class _HomePageState extends State<HomePage> {
     var todos =
         todoProvider.todos
             .where(
-              (todo) => todo.title!.toLowerCase().contains(
+              (todo) => (todo.title ?? '').toLowerCase().contains(
                 _searchQuery.toLowerCase(),
               ),
             )
@@ -47,19 +106,28 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: AppTheme.textColor),
-          onPressed: () {
-            context.go('/');
-          },
-        ),
+        leading: null,
+        actions: [
+          //actions kısmı sağdaki iconlar
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.logout, color: AppTheme.textColor, size: 24),
+                onPressed: () {
+                  _logout(context);
+                },
+              ),
+              const SizedBox(width: 10),
+            ],
+          ),
+        ],
         backgroundColor: Colors.white,
         shadowColor: gray,
         elevation: 0,
         toolbarHeight: 55,
       ),
       body:
-          (_isLoading == true)
+          (_isLoading == true || _isLoggingOut)
               ? Loader()
               : Stack(
                 children: [
@@ -82,6 +150,8 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         searchBox(),
                         const SizedBox(height: 20),
+                        if (_infoMessage != null)
+                          _widgetInfoMessage(infoMessage: _infoMessage),
                         Expanded(
                           child: ListView.builder(
                             itemCount: todos.length,
@@ -123,7 +193,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                             decoration: BoxDecoration(
                               color: AppTheme.surfaceColor,
-                             
+
                               boxShadow: [
                                 BoxShadow(
                                   color: AppTheme.primaryColor.withAlpha(51),
@@ -141,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                                 hintText: AppStrings.addNewTask,
                                 hintStyle: TextStyle(color: AppTheme.hintColor),
                                 border: InputBorder.none,
-                                
+
                                 contentPadding: const EdgeInsets.only(
                                   left: 20,
                                   right: 20,
@@ -166,12 +236,14 @@ class _HomePageState extends State<HomePage> {
                             onPressed: () {
                               if (_todoController.text.isNotEmpty) {
                                 todoProvider.addToDo(_todoController.text);
+                                showInfoMessage("Görev başarıyla eklendi!");
                                 _todoController.clear();
                               }
                             },
                             child: const Center(
                               child: Icon(
                                 Icons.add,
+
                                 color: Colors.white,
                                 size: 30,
                               ),
@@ -211,6 +283,35 @@ class _HomePageState extends State<HomePage> {
           border: InputBorder.none,
           hintText: AppStrings.searchTask,
           hintStyle: TextStyle(color: AppTheme.hintColor),
+        ),
+      ),
+    );
+  }
+}
+
+class _widgetInfoMessage extends StatelessWidget {
+  const _widgetInfoMessage({super.key, required String? infoMessage})
+    : _infoMessage = infoMessage;
+
+  final String? _infoMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: AnimatedOpacity(
+        opacity: _infoMessage != null ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.green[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            _infoMessage ?? '',
+            style: const TextStyle(color: Colors.green, fontSize: 15),
+          ),
         ),
       ),
     );
