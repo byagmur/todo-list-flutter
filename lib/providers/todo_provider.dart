@@ -100,23 +100,27 @@ class TodoProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addToDo(String title) async {
+  Future<void> addToDo(String title, {String? category}) async {
     try {
+      final now = DateTime.now();
       final todoData = {
         'title': title,
         'isCompleted': false,
         'userId': globalUserId,
+        'createdAt': now.toIso8601String(),
+        'category': category, // yeni alan
       };
       final docRef = await FirebaseFirestore.instance
           .collection('todos')
           .add(todoData);
 
-      // Firestore'dan dönen belgeyi modele ekle
       final newTodo = ToDo(
         id: docRef.id,
         title: title,
         completed: false,
         userId: globalUserId,
+        createdAt: now,
+        category: category,
       );
       _todos.add(newTodo);
       notifyListeners();
@@ -133,5 +137,47 @@ class TodoProvider with ChangeNotifier {
     } catch (e) {
       print("Todo silinirken hata: $e");
     }
+  }
+
+  Future<void> updateToDoTitle(String id, String newTitle) async {
+    int index = _todos.indexWhere((todo) => todo.id == id);
+    if (index != -1) {
+      try {
+        await FirebaseFirestore.instance.collection('todos').doc(id).update({
+          'title': newTitle,
+        });
+        _todos[index].title = newTitle;
+        notifyListeners();
+      } catch (e) {
+        print("Todo güncellenirken hata: $e");
+        rethrow;
+      }
+    }
+  }
+
+  List<ToDo> getFilteredTodos({
+    String searchQuery = '',
+    DateTime? selectedDate,
+    String? selectedCategory,
+    bool showOnlyIncomplete = false,
+  }) {
+    return _todos.where((todo) {
+      final titleMatch = (todo.title ?? '').toLowerCase().contains(
+        searchQuery.toLowerCase(),
+      );
+      final categoryMatch =
+          (selectedCategory == null || selectedCategory == 'Tümü')
+              ? true
+              : (todo.category == selectedCategory);
+      final incompleteMatch =
+          showOnlyIncomplete ? !(todo.completed ?? false) : true;
+      final dateMatch =
+          (selectedDate == null || todo.createdAt == null)
+              ? true
+              : (todo.createdAt!.year == selectedDate.year &&
+                  todo.createdAt!.month == selectedDate.month &&
+                  todo.createdAt!.day == selectedDate.day);
+      return titleMatch && categoryMatch && incompleteMatch && dateMatch;
+    }).toList();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:todo_app_flutter/constants/theme.dart';
 import 'package:todo_app_flutter/providers/todo_provider.dart';
 import 'package:provider/provider.dart';
@@ -7,10 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart'; // flutterfire configure'den gelen dosya
 
 void main() async {
-    WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     ChangeNotifierProvider(
       create: (context) => TodoProvider(),
@@ -29,8 +28,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.dark;
 
-  
-
   void _toggleTheme() {
     setState(() {
       _themeMode =
@@ -48,7 +45,6 @@ class _MyAppState extends State<MyApp> {
         builder: (context) {
           final inheritedTheme = ThemeInheritedWidget.of(context)!;
           return MaterialApp.router(
-            
             routerConfig: router_,
 
             // initialRoute: '/', // varsayılan route *yanlış kullanım. Hata verir
@@ -56,6 +52,15 @@ class _MyAppState extends State<MyApp> {
             themeMode: inheritedTheme.themeMode,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
+
+            localizationsDelegates: [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [
+              Locale('en', ''), // veya ['tr'] gibi Türkçe desteği
+            ],
           );
         },
       ),

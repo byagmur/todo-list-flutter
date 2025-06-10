@@ -11,6 +11,10 @@ ToDo _$ToDoFromJson(Map<String, dynamic> json) => ToDo(
       title: json['title'] as String?,
       completed: json['completed'] as bool? ?? false,
       userId: json['userId'] as String?,
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+      category: json['category'] as String?,
     );
 
 Map<String, dynamic> _$ToDoToJson(ToDo instance) => <String, dynamic>{
@@ -18,4 +22,6 @@ Map<String, dynamic> _$ToDoToJson(ToDo instance) => <String, dynamic>{
       'title': instance.title,
       'completed': instance.completed,
       'userId': instance.userId,
+      'createdAt': instance.createdAt?.toIso8601String(),
+      'category': instance.category,
     };

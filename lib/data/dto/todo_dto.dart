@@ -5,14 +5,27 @@ class ToDoDTO {
   final String id;
   final String title;
   final bool isCompleted;
+  final DateTime? createdAt;
+  final String? category; // yeni alan
 
-  ToDoDTO({required this.id, required this.title, required this.isCompleted});
+  ToDoDTO({
+    required this.id,
+    required this.title,
+    required this.isCompleted,
+    this.createdAt,
+    this.category,
+  });
 
   factory ToDoDTO.fromJson(Map<String, dynamic> json, String documentId) {
     return ToDoDTO(
       id: documentId,
-      title: json['title'] ?? '', // Eksikse boş string
+      title: json['title'] ?? '',
       isCompleted: json['isCompleted'] ?? false,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'])
+              : null,
+      category: json['category'], // yeni alan
     );
   }
 
@@ -20,18 +33,26 @@ class ToDoDTO {
     'id': id,
     'title': title,
     'isCompleted': isCompleted,
+    'createdAt': createdAt?.toIso8601String(),
+    'category': category,
   };
 
   // id artık string olarak model'e aktarılıyor
-  ToDo toModel() => ToDo(id: id, title: title, completed: isCompleted);
+  ToDo toModel() => ToDo(
+    id: id,
+    title: title,
+    completed: isCompleted,
+    createdAt: createdAt,
+    category: category,
+  );
 
   factory ToDoDTO.fromModel(ToDo model) {
     return ToDoDTO(
-      id:
-          (model.id ?? '')
-              .toString(), // null ise boş string, String'e dönüştürüldü
+      id: (model.id ?? '').toString(), //
       title: model.title as String,
       isCompleted: model.completed as bool,
+      createdAt: model.createdAt,
+      category: model.category,
     );
   }
 }

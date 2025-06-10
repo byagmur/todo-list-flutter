@@ -71,13 +71,13 @@ class LoginScreenState extends State<LoginScreen>
 
       // Check if the widget is still mounted before navigating
       if (mounted) {
-        // TodoProvider'dan görevleri yükle
+
         Provider.of<TodoProvider>(
           context,
           listen: false,
         ).fetchUserTodos(globalUserId!);
 
-        // Ana sayfaya yönlendir
+        
         context.go('/home');
       }
     } catch (e) {
@@ -235,7 +235,9 @@ class LoginScreenState extends State<LoginScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  context.go('/register');
+                                },
                                 child: Text('Kayıt Ol'),
                               ),
                             ],

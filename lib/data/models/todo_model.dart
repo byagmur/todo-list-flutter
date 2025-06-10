@@ -9,12 +9,16 @@ class ToDo {
   String? title;
   bool? completed;
   String? userId;
+  DateTime? createdAt; // yeni alan
+  String? category; // yeni alan
 
   ToDo({
     required this.id,
     required this.title,
     this.completed = false,
     this.userId,
+    this.createdAt,
+    this.category, // yeni alan
   });
 
   // toJson: ToDo nesnesini Map'e dönüştürme, apiye veri gönderirken kullanılır.

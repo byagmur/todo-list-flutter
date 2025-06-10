@@ -28,6 +28,11 @@ class _HomePageState extends State<HomePage> {
   String? _infoMessage;
   Timer? _infoTimer;
 
+  DateTime? _selectedDate; // seçili tarih
+  bool _showOnlyIncomplete = false; // yeni state
+  String? _selectedCategory;
+  final List<String> _categories = ['Tümü', 'İş', 'Kişisel', 'Okul'];
+
   void showInfoMessage(String message) {
     setState(() {
       _infoMessage = message;
@@ -95,20 +100,19 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     var todoProvider = Provider.of<TodoProvider>(context);
-    var todos =
-        todoProvider.todos
-            .where(
-              (todo) => (todo.title ?? '').toLowerCase().contains(
-                _searchQuery.toLowerCase(),
-              ),
-            )
-            .toList();
+
+    // Doğrudan filtre fonksiyonunu kullanın:
+    var todos = todoProvider.getFilteredTodos(
+      searchQuery: _searchQuery,
+      selectedDate: _selectedDate,
+      selectedCategory: _selectedCategory,
+      showOnlyIncomplete: _showOnlyIncomplete,
+    );
 
     return Scaffold(
       appBar: AppBar(
         leading: null,
         actions: [
-          //actions kısmı sağdaki iconlar
           Row(
             children: [
               IconButton(
@@ -149,7 +153,47 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       children: [
                         searchBox(),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
+                        categoryDropdownWidget(),
+                        const SizedBox(height: 10),
+                        datePickerWidget(),
+                        const SizedBox(height: 10),
+                        // Tamamlanmayanları göster butonu
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: Icon(
+                                  _showOnlyIncomplete
+                                      ? Icons.check_box_outline_blank
+                                      : Icons.check_box,
+                                  color: Colors.white,
+                                ),
+                                label: Text(
+                                  _showOnlyIncomplete
+                                      ? "Sadece tamamlanmayanlar"
+                                      : "Tüm görevler",
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _showOnlyIncomplete = !_showOnlyIncomplete;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
                         if (_infoMessage != null)
                           _widgetInfoMessage(infoMessage: _infoMessage),
                         Expanded(
@@ -233,11 +277,19 @@ class _HomePageState extends State<HomePage> {
                                 borderRadius: BorderRadius.circular(15),
                               ),
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               if (_todoController.text.isNotEmpty) {
-                                todoProvider.addToDo(_todoController.text);
+                                await todoProvider.addToDo(
+                                  _todoController.text,
+                                  category:
+                                      _selectedCategory == null ||
+                                              _selectedCategory == 'Tümü'
+                                          ? null
+                                          : _selectedCategory,
+                                );
                                 showInfoMessage("Görev başarıyla eklendi!");
                                 _todoController.clear();
+                                // fetchUserTodos çağrısını kaldırın!
                               }
                             },
                             child: const Center(
@@ -285,6 +337,97 @@ class _HomePageState extends State<HomePage> {
           hintStyle: TextStyle(color: AppTheme.hintColor),
         ),
       ),
+    );
+  }
+
+  Widget datePickerWidget() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: Icon(
+              Icons.calendar_today,
+              size: 18,
+              color: AppTheme.primaryColor,
+            ),
+            label: Text(
+              _selectedDate == null
+                  ? "Tarihe göre filtrele"
+                  : "${_selectedDate!.day}.${_selectedDate!.month}.${_selectedDate!.year}",
+              style: TextStyle(color: AppTheme.primaryColor),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppTheme.primaryColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              DateTime now = DateTime.now();
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate ?? now,
+                firstDate: DateTime(now.year - 5),
+                lastDate: DateTime(now.year + 5),
+                locale: const Locale('tr', 'TR'),
+              );
+              if (picked != null) {
+                setState(() {
+                  _selectedDate = picked;
+                });
+              }
+            },
+          ),
+        ),
+        if (_selectedDate != null)
+          IconButton(
+            icon: Icon(Icons.clear, color: AppTheme.errorColor),
+            onPressed: () {
+              setState(() {
+                _selectedDate = null;
+              });
+            },
+            tooltip: "Filtreyi temizle",
+          ),
+      ],
+    );
+  }
+
+  Widget categoryDropdownWidget() {
+    return Row(
+      children: [
+        const Text("Kategori: ",
+            style: TextStyle(
+              color: AppTheme.textColor,
+              fontSize: 16,
+            )),
+        const SizedBox(width: 8),
+        DropdownButton<String>(
+          style: TextStyle(
+            color: AppTheme.textColor,
+            fontSize: 16,
+          ),
+          underline: Container(
+            height: 1,
+            color: AppTheme.primaryColor,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
+          icon: Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+          value: _selectedCategory ?? 'Tümü',
+          items:
+              _categories
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                  .toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCategory = value == 'Tümü' ? null : value;
+            });
+          },
+        ),
+      ],
     );
   }
 }

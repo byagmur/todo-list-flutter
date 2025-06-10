@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/Users/beyza/flutter_projects/todo_app_flutter/windows"
+    "cmake.sourceDirectory": "C:/Users/beyza/flutter_projects/todo_app_flutter/windows",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

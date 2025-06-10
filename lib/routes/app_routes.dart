@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:todo_app_flutter/presentation/screens/home_screen.dart';
 import 'package:todo_app_flutter/presentation/screens/login_screen.dart';
+import 'package:todo_app_flutter/presentation/screens/register_screen.dart';
 import 'package:todo_app_flutter/presentation/screens/sheet_learn_screen.dart';
 
 final GoRouter router_ = GoRouter(
     routes: [
       GoRoute(path: '/', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/sheet_learn', builder: (context, state) => const SheetLearn()),
+      GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(
         path: '/home',
         pageBuilder: (context, state) {
